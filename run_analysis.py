@@ -59,13 +59,6 @@ def main():
     print("\n--- Sensitivity Analysis Results ---")
     print(sens_df.to_string())
     
-    # Optional: Plotting
-    print("\nGenerating Sensitivity Heatmap plot. Close the plot window to finish...")
-    try:
-        plot_sensitivity_heatmap(sens_df, metric='Pinball_OOS')
-    except Exception as e:
-        print(f"Plotting failed (expected if running without a display): {e}")
-
     print("\n" + "="*70)
     print("  PHASE 3: EXPORTING RESULTS TO CSV")
     print("="*70)
@@ -81,7 +74,14 @@ def main():
         print("Success! All generated tables have been saved securely in the 'results/' directory.")
     except Exception as e:
         print(f"Error while saving data: {e}")
-        
+
+    # Optional: Plotting
+    print("\nGenerating Sensitivity Heatmap plot. Close the plot window to finish...")
+    try:
+        plot_sensitivity_heatmap(sens_df, metric='Pinball_OOS')
+    except Exception as e:
+        print(f"Plotting failed (expected if running without a display): {e}")
+
     print("\nAnalysis complete.")
 
 if __name__ == "__main__":
