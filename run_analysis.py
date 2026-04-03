@@ -6,7 +6,11 @@ from covar_engine import (
     run_full_pipeline, 
     print_summary_report, 
     run_sensitivity_analysis,
-    plot_sensitivity_heatmap
+    plot_sensitivity_heatmap,
+    make_unconditional_ranking_table,
+    make_conditional_ranking_table,
+    make_forward_covar_table,
+    make_backtest_table
 )
 
 # Configuration
@@ -61,6 +65,22 @@ def main():
         plot_sensitivity_heatmap(sens_df, metric='Pinball_OOS')
     except Exception as e:
         print(f"Plotting failed (expected if running without a display): {e}")
+
+    print("\n" + "="*70)
+    print("  PHASE 3: EXPORTING RESULTS TO CSV")
+    print("="*70)
+    
+    os.makedirs("results", exist_ok=True)
+    
+    try:
+        make_unconditional_ranking_table(results).to_csv("results/table1_unconditional_ranking.csv")
+        make_conditional_ranking_table(results).to_csv("results/table2_conditional_ranking.csv")
+        make_forward_covar_table(results).to_csv("results/table3_forward_covar.csv")
+        make_backtest_table(results).to_csv("results/table4_backtests.csv")
+        sens_df.to_csv("results/sensitivity_analysis.csv")
+        print("Success! All generated tables have been saved securely in the 'results/' directory.")
+    except Exception as e:
+        print(f"Error while saving data: {e}")
         
     print("\nAnalysis complete.")
 
