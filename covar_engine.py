@@ -676,6 +676,7 @@ def run_backtests(df: pd.DataFrame, ticker: str,
 def run_full_pipeline(df: pd.DataFrame,
                       q: float = QUANTILE,
                       horizon: int = HORIZON,
+                      window: int = 100,
                       scale_features: bool = True,
                       use_expanding: bool = False,
                       use_quantreg: bool = True,
@@ -720,7 +721,9 @@ def run_full_pipeline(df: pd.DataFrame,
         # ── 3. Forward-CoVaR ─────────────────────────────────────────────
         try:
             if "conditional" in res:
-                rolling_dcovar = estimate_rolling_delta_covar(df, ticker, q=q)
+                if verbose:
+                    print(f"  --> Calculating Rolling Delta-CoVaR for {ticker.upper()} (window={window})...")
+                rolling_dcovar = estimate_rolling_delta_covar(df, ticker, q=q, window=window)
                 res["rolling_dcovar"] = rolling_dcovar
 
                 if use_expanding:
@@ -1068,6 +1071,7 @@ def run_sensitivity_analysis(df: pd.DataFrame,
                              tickers: list = TICKERS, 
                              quantiles: list = [0.01, 0.05, 0.10], 
                              horizons: list = [1, 5, 10], 
+                             window: int = 100,
                              use_expanding: bool = False,
                              scale_features: bool = True,
                              use_quantreg: bool = True,
@@ -1085,10 +1089,10 @@ def run_sensitivity_analysis(df: pd.DataFrame,
             
         for q in quantiles:
             if verbose:
-                print(f"  --> Calculating Conditional CoVaR for q={q}...")
+                print(f"  --> Calculating Conditional CoVaR for q={q} (window={window})...")
                 
             # DeltaCoVaR only depends on q, not horizon! Calculate once per quantile.
-            rolling_dcovar = estimate_rolling_delta_covar(df_features, t, q=q)
+            rolling_dcovar = estimate_rolling_delta_covar(df_features, t, q=q, window=window)
             
             for h in horizons:
                 if verbose:

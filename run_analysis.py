@@ -41,6 +41,7 @@ def main():
         full_df, 
         q=0.05, 
         horizon=1, 
+        window=100,
         scale_features=True, 
         use_expanding=True,
         use_quantreg=USE_QUANTREG,
@@ -58,6 +59,7 @@ def main():
         full_df, 
         quantiles=[0.01, 0.05, 0.10], 
         horizons=[1, 5, 10], 
+        window=100,
         scale_features=True, 
         use_expanding=True,
         use_quantreg=USE_QUANTREG

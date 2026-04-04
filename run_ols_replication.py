@@ -44,6 +44,7 @@ results = run_full_pipeline(
     full_df,
     q=0.05,
     horizon=1,
+    window=100,
     scale_features=True,
     use_expanding=True,
     use_quantreg=False,   # <-- STRICT A&B (2016) OLS
@@ -88,6 +89,7 @@ sens_df = run_sensitivity_analysis(
     full_df,
     quantiles=[0.01, 0.05, 0.10],
     horizons=[1, 5, 10],
+    window=100,
     scale_features=True,
     use_expanding=True,
     use_quantreg=False   # <-- STRICT A&B (2016) OLS
