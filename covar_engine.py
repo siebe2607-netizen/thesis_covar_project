@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import warnings
 from scipy import stats
+import statsmodels.api as sm
 from statsmodels.regression.quantile_regression import QuantReg
 from statsmodels.tools import add_constant
 
@@ -345,7 +346,7 @@ def estimate_rolling_delta_covar(
 def estimate_forward_covar(
     df: pd.DataFrame, ticker: str, delta_covar_series: pd.Series,
     q: float = QUANTILE, horizon: int = HORIZON, test_size: float = 0.25,
-    scale_features: bool = True
+    scale_features: bool = True, use_quantreg: bool = True
 ) -> dict:
 
     # 1. Catch silent rolling failures instantly
@@ -388,24 +389,35 @@ def estimate_forward_covar(
     idx_tr     = combined.index[:split]
     idx_te     = combined.index[split:]
 
-    mod  = QuantReg(y_tr, X_tr)
-    res  = mod.fit(q=q, p_tol=1e-4, max_iter=2000)
+    if use_quantreg:
+        mod  = QuantReg(y_tr, X_tr)
+        res  = mod.fit(q=q, p_tol=1e-4, max_iter=2000)
+    else:
+        mod  = sm.OLS(y_tr, X_tr)
+        res  = mod.fit()
 
     fitted   = res.predict(X_tr)
     forecast = res.predict(X_te)
 
     resid_full = y_tr - fitted
-    base_mod   = QuantReg(y_tr, np.ones(len(y_tr)))
-    base_res   = base_mod.fit(q=q, p_tol=1e-4, max_iter=2000)
-    resid_base = y_tr - base_res.predict()
+    
+    if use_quantreg:
+        base_mod   = QuantReg(y_tr, np.ones(len(y_tr)))
+        base_res   = base_mod.fit(q=q, p_tol=1e-4, max_iter=2000)
+        resid_base = y_tr - base_res.predict()
 
-    def _check_loss(resid, q):
-        return np.mean(resid * (q - (resid < 0).astype(float)))
+        def _check_loss(resid, q_val):
+            return np.mean(resid * (q_val - (resid < 0).astype(float)))
 
-    r2_is = 1 - _check_loss(resid_full, q) / _check_loss(resid_base, q)
-
-    pinball_is  = _check_loss(y_tr - fitted,    q)
-    pinball_oos = _check_loss(y_te - forecast,  q)
+        r2_is = 1 - _check_loss(resid_full, q) / _check_loss(resid_base, q)
+        loss_is  = _check_loss(y_tr - fitted,    q)
+        loss_oos = _check_loss(y_te - forecast,  q)
+        loss_name = "Pinball"
+    else:
+        r2_is = res.rsquared
+        loss_is  = np.mean((y_tr - fitted)**2)
+        loss_oos = np.mean((y_te - forecast)**2)
+        loss_name = "MSE"
 
     param_names = ["const"] + feat_names
     params_df = pd.DataFrame(
@@ -418,38 +430,9 @@ def estimate_forward_covar(
         "forecast":      pd.Series(forecast, index=idx_te, name="FwdCoVaR_forecast"),
         "actual":        pd.Series(y_te,     index=idx_te, name="DeltaCoVaR_actual"),
         "params":        params_df,
-        "pinball_is":    pinball_is,
-        "pinball_oos":   pinball_oos,
-        "r2_is":         r2_is,
-        "feature_names": feat_names,
-    }
-    def _check_loss(resid, q):
-        return np.mean(resid * (q - (resid < 0).astype(float)))
-
-    r2_is = 1 - _check_loss(resid_full, q) / _check_loss(resid_base, q)
-
-    # ── Pinball (quantile) loss ──────────────────────────────────────────
-    pinball_is  = _check_loss(y_tr - fitted,    q)
-    pinball_oos = _check_loss(y_te - forecast,  q)
-
-    # ── Coefficient table ────────────────────────────────────────────────
-    param_names = ["const"] + feat_names
-    params_df = pd.DataFrame(
-        {
-            "coef":   res.params,
-            "pvalue": res.pvalues,
-            "tstat":  res.tvalues,
-        },
-        index=param_names
-    )
-
-    return {
-        "fitted":        pd.Series(fitted,   index=idx_tr, name="FwdCoVaR_fitted"),
-        "forecast":      pd.Series(forecast, index=idx_te, name="FwdCoVaR_forecast"),
-        "actual":        pd.Series(y_te,     index=idx_te, name="DeltaCoVaR_actual"),
-        "params":        params_df,
-        "pinball_is":    pinball_is,
-        "pinball_oos":   pinball_oos,
+        "loss_is":       loss_is,
+        "loss_oos":      loss_oos,
+        "loss_name":     loss_name,
         "r2_is":         r2_is,
         "feature_names": feat_names,
     }
@@ -459,7 +442,7 @@ def estimate_forward_covar(
 def estimate_forward_covar_expanding(
     df: pd.DataFrame, ticker: str, delta_covar_series: pd.Series,
     q: float = QUANTILE, horizon: int = HORIZON, min_train_size: int = 500,
-    scale_features: bool = True
+    scale_features: bool = True, use_quantreg: bool = True
 ) -> dict:
     """
     Estimates Forward-CoVaR using an Expanding Window approach for out-of-sample prediction.
@@ -514,16 +497,19 @@ def estimate_forward_covar_expanding(
             X_tr = add_constant(X_train, has_constant="add")
             X_te = add_constant(X_test, has_constant="add")
         
-        # Fit Quantile Regression and Predict
-        mod = QuantReg(y_train, X_tr)
-        res = mod.fit(q=q, p_tol=1e-4, max_iter=2000)
+        # Fit and Predict
+        if use_quantreg:
+            mod = QuantReg(y_train, X_tr)
+            res = mod.fit(q=q, p_tol=1e-4, max_iter=2000)
+        else:
+            mod = sm.OLS(y_train, X_tr)
+            res = mod.fit()
         
         forecast = res.predict(X_te)[0]
         forecasts.append(forecast)
         forecast_idx.append(combined.index[i])
 
     # ── Final Reporting Model ──────────────────────────────────────────────
-    # Refits on the entire dataset to generate the coefficients for your thesis tables
     if scale_features:
         full_mean = np.mean(Xm_arr, axis=0)
         full_std = np.std(Xm_arr, axis=0)
@@ -533,26 +519,36 @@ def estimate_forward_covar_expanding(
         Xm_arr_final = Xm_arr
     Xreg_full = add_constant(Xm_arr_final, has_constant="add")
     
-    mod_full = QuantReg(y_arr, Xreg_full)
-    res_full = mod_full.fit(q=q, p_tol=1e-4, max_iter=2000)
+    if use_quantreg:
+        mod_full = QuantReg(y_arr, Xreg_full)
+        res_full = mod_full.fit(q=q, p_tol=1e-4, max_iter=2000)
+    else:
+        mod_full = sm.OLS(y_arr, Xreg_full)
+        res_full = mod_full.fit()
+
     fitted_full = res_full.predict(Xreg_full)
     
-    # ── Loss Metrics (Pinball) ─────────────────────────────────────────────
-    def _check_loss(resid, q_val):
-        return np.mean(resid * (q_val - (resid < 0).astype(float)))
-
+    # ── Loss Metrics ─────────────────────────────────────────────
     resid_full = y_arr - fitted_full
-    base_mod   = QuantReg(y_arr, np.ones(len(y_arr)))
-    base_res   = base_mod.fit(q=q, p_tol=1e-4, max_iter=2000)
-    resid_base = y_arr - base_res.predict()
-
-    # R2 pseudo and In-sample loss
-    r2_all = 1 - _check_loss(resid_full, q) / _check_loss(resid_base, q)
-    pinball_is  = _check_loss(resid_full, q)
-    
-    # Out-of-sample loss on expanding window path
     y_test_actual = y_arr[min_train_size:]
-    pinball_oos = _check_loss(y_test_actual - forecasts, q)
+
+    if use_quantreg:
+        def _check_loss(resid, q_val):
+            return np.mean(resid * (q_val - (resid < 0).astype(float)))
+
+        base_mod   = QuantReg(y_arr, np.ones(len(y_arr)))
+        base_res   = base_mod.fit(q=q, p_tol=1e-4, max_iter=2000)
+        resid_base = y_arr - base_res.predict()
+
+        r2_all = 1 - _check_loss(resid_full, q) / _check_loss(resid_base, q)
+        loss_is  = _check_loss(resid_full, q)
+        loss_oos = _check_loss(y_test_actual - forecasts, q)
+        loss_name = "Pinball"
+    else:
+        r2_all = res_full.rsquared
+        loss_is  = np.mean(resid_full ** 2)
+        loss_oos = np.mean((y_test_actual - forecasts) ** 2)
+        loss_name = "MSE"
 
     param_names = ["const"] + feat_names
     params_df = pd.DataFrame(
@@ -565,8 +561,9 @@ def estimate_forward_covar_expanding(
         "forecast":      pd.Series(forecasts, index=forecast_idx, name="FwdCoVaR_forecast"),
         "actual":        pd.Series(y_test_actual, index=forecast_idx, name="DeltaCoVaR_actual"),
         "params":        params_df,
-        "pinball_is":    pinball_is,
-        "pinball_oos":   pinball_oos,
+        "loss_is":       loss_is,
+        "loss_oos":      loss_oos,
+        "loss_name":     loss_name,
         "r2_is":         r2_all,
         "feature_names": feat_names,
     }
@@ -681,6 +678,7 @@ def run_full_pipeline(df: pd.DataFrame,
                       horizon: int = HORIZON,
                       scale_features: bool = True,
                       use_expanding: bool = False,
+                      use_quantreg: bool = True,
                       verbose: bool = True) -> dict:
     """
     Runs the complete Forward-CoVaR pipeline for all tickers and returns
@@ -726,14 +724,14 @@ def run_full_pipeline(df: pd.DataFrame,
                 res["rolling_dcovar"] = rolling_dcovar
 
                 if use_expanding:
-                    fwd = estimate_forward_covar_expanding(df, ticker, rolling_dcovar, q=q, horizon=horizon, scale_features=scale_features)
+                    fwd = estimate_forward_covar_expanding(df, ticker, rolling_dcovar, q=q, horizon=horizon, scale_features=scale_features, use_quantreg=use_quantreg)
                 else:
-                    fwd = estimate_forward_covar(df, ticker, rolling_dcovar, q=q, horizon=horizon, scale_features=scale_features)
+                    fwd = estimate_forward_covar(df, ticker, rolling_dcovar, q=q, horizon=horizon, scale_features=scale_features, use_quantreg=use_quantreg)
 
                 res["forward"] = fwd
                 if verbose:
                     print(f"  [3] Forward-CoVaR  |  Pseudo-R² = {fwd['r2_is']:.4f}"
-                          f"  |  Pinball OOS = {fwd['pinball_oos']:.6f}")
+                          f"  |  {fwd['loss_name']} OOS = {fwd['loss_oos']:.6f}")
         except Exception as e:
             print(f"  [ERROR] Forward-CoVaR for {ticker}: {e}")
 
@@ -812,8 +810,8 @@ def make_forward_covar_table(results: dict) -> pd.DataFrame:
         fwd = results[t]["forward"]
         row = {"Coin": t.upper(),
                "Pseudo-R²": round(fwd["r2_is"], 4),
-               "Pinball IS": round(fwd["pinball_is"], 6),
-               "Pinball OOS": round(fwd["pinball_oos"], 6)}
+               f"{fwd['loss_name']} IS": round(fwd["loss_is"], 6),
+               f"{fwd['loss_name']} OOS": round(fwd["loss_oos"], 6)}
         for feat, coef, pval in zip(
             fwd["params"].index,
             fwd["params"]["coef"],
@@ -1023,8 +1021,17 @@ def print_summary_report(results: dict):
     print("  TABLE 3 – FORWARD-CoVaR REGRESSION (in-sample)")
     print(sep)
     fwd_tbl = make_forward_covar_table(results)
-    # Show only fit stats + first 3 coefs to keep it readable
-    show_cols = ["Pseudo-R²", "Pinball IS", "Pinball OOS"]
+    # Find dynamic loss names from the first available output
+    loss_key_is = "Loss IS"
+    loss_key_oos = "Loss OOS"
+    if not fwd_tbl.empty:
+        for col in fwd_tbl.columns:
+            if " IS" in col:
+                loss_key_is = col
+            elif " OOS" in col:
+                loss_key_oos = col
+
+    show_cols = ["Pseudo-R²", loss_key_is, loss_key_oos]
     coef_cols = [c for c in fwd_tbl.columns if c.startswith("β_")][:6]
     print(fwd_tbl[show_cols + coef_cols].to_string())
 
@@ -1063,6 +1070,7 @@ def run_sensitivity_analysis(df: pd.DataFrame,
                              horizons: list = [1, 5, 10], 
                              use_expanding: bool = False,
                              scale_features: bool = True,
+                             use_quantreg: bool = True,
                              verbose: bool = True) -> pd.DataFrame:
     """
     Runs a sensitivity analysis across multiple tail quantiles (q) and prediction horizons.
@@ -1087,9 +1095,9 @@ def run_sensitivity_analysis(df: pd.DataFrame,
                     print(f"      Running Forward-CoVaR (h={h}) | Expanding={use_expanding}")
                 try:
                     if use_expanding:
-                        fwd = estimate_forward_covar_expanding(df_features, t, rolling_dcovar, q=q, horizon=h, scale_features=scale_features)
+                        fwd = estimate_forward_covar_expanding(df_features, t, rolling_dcovar, q=q, horizon=h, scale_features=scale_features, use_quantreg=use_quantreg)
                     else:
-                        fwd = estimate_forward_covar(df_features, t, rolling_dcovar, q=q, horizon=h, scale_features=scale_features)
+                        fwd = estimate_forward_covar(df_features, t, rolling_dcovar, q=q, horizon=h, scale_features=scale_features, use_quantreg=use_quantreg)
                         
                     results_list.append({
                         "Coin": t.upper(),
@@ -1097,8 +1105,9 @@ def run_sensitivity_analysis(df: pd.DataFrame,
                         "Horizon": h,
                         "Engine": "Expanding" if use_expanding else "Static",
                         "Pseudo-R2": fwd["r2_is"],
-                        "Pinball_IS": fwd["pinball_is"],
-                        "Pinball_OOS": fwd["pinball_oos"]
+                        "Loss_IS": fwd["loss_is"],
+                        "Loss_OOS": fwd["loss_oos"],
+                        "Loss_Metric": fwd["loss_name"]
                     })
                 except Exception as e:
                     print(f"      [ERROR] failed for q={q}, h={h}: {e}")

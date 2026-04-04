@@ -32,12 +32,16 @@ def main():
     print("="*70)
     
     # Run pipeline identical to notebook defaults
+    # Set `use_quantreg=False` for strict A&B (2016) replication (Ordinary Least Squares)
+    USE_QUANTREG = True
+
     results = run_full_pipeline(
         full_df, 
         q=0.05, 
         horizon=1, 
         scale_features=True, 
         use_expanding=True,
+        use_quantreg=USE_QUANTREG,
         verbose=True
     )
     
@@ -53,7 +57,8 @@ def main():
         quantiles=[0.01, 0.05, 0.10], 
         horizons=[1, 5, 10], 
         scale_features=True, 
-        use_expanding=True
+        use_expanding=True,
+        use_quantreg=USE_QUANTREG
     )
     
     print("\n--- Sensitivity Analysis Results ---")
@@ -78,7 +83,8 @@ def main():
     # Optional: Plotting
     print("\nGenerating Sensitivity Heatmap plot. Close the plot window to finish...")
     try:
-        plot_sensitivity_heatmap(sens_df, metric='Pinball_OOS')
+        # Pass Loss_OOS so it dynamically plots either MSE or Pinball depending on the engine
+        plot_sensitivity_heatmap(sens_df, metric='Loss_OOS')
     except Exception as e:
         print(f"Plotting failed (expected if running without a display): {e}")
 
