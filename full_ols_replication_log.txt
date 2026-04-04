@@ -1,0 +1,184 @@
+Loading dataframe from: /Users/iphonevansiebe/Downloads/thesis_full_df_backup_final.csv
+
+======================================================================
+  PHASE 1: FULL FORWARD-CoVaR PIPELINE (OLS REPLICATION)
+======================================================================
+
+============================================================
+  Processing: BTC
+============================================================
+  [1] Unconditional ΔCoVaR : -0.0440
+  [2] Conditional ΔCoVaR (mean): -0.0427
+      γ (coin return coeff):      0.9197
+  [3] Forward-CoVaR  |  Pseudo-R² = 0.4006  |  MSE OOS = 0.000262
+  [4] Kupiec  : LR=2.9878, p=0.0839, reject=False
+      Christ. : LR=1.286, p=0.2568, reject=False
+
+============================================================
+  Processing: ETH
+============================================================
+  [1] Unconditional ΔCoVaR : -0.0357
+  [2] Conditional ΔCoVaR (mean): -0.0324
+      γ (coin return coeff):      0.5224
+  [3] Forward-CoVaR  |  Pseudo-R² = 0.4011  |  MSE OOS = 0.000129
+  [4] Kupiec  : LR=0.0009, p=0.976, reject=False
+      Christ. : LR=1.8777, p=0.1706, reject=False
+
+============================================================
+  Processing: XRP
+============================================================
+  [1] Unconditional ΔCoVaR : -0.0210
+  [2] Conditional ΔCoVaR (mean): -0.0225
+      γ (coin return coeff):      0.3310
+  [3] Forward-CoVaR  |  Pseudo-R² = 0.3736  |  MSE OOS = 0.000087
+  [4] Kupiec  : LR=0.7311, p=0.3925, reject=False
+      Christ. : LR=1.9366, p=0.164, reject=False
+
+============================================================
+  Processing: BNB
+============================================================
+  [1] Unconditional ΔCoVaR : -0.0267
+  [2] Conditional ΔCoVaR (mean): -0.0294
+      γ (coin return coeff):      0.5076
+  [3] Forward-CoVaR  |  Pseudo-R² = 0.3252  |  MSE OOS = 0.000174
+  [4] Kupiec  : LR=0.4156, p=0.5191, reject=False
+      Christ. : LR=0.8381, p=0.36, reject=False
+
+============================================================
+  Processing: SOL
+============================================================
+  [1] Unconditional ΔCoVaR : -0.0008
+  [2] Conditional ΔCoVaR (mean): -0.0020
+      γ (coin return coeff):      0.0223
+  [3] Forward-CoVaR  |  Pseudo-R² = 0.1415  |  MSE OOS = 0.000033
+  [4] Kupiec  : LR=15.686, p=0.0001, reject=True
+      Christ. : LR=0.3158, p=0.5741, reject=False
+
+======================================================================
+  TABLE 1 – UNCONDITIONAL ΔCoVaR RANKING
+======================================================================
+     Coin  VaR (5%)  CoVaR (5%)  ΔCoVaR
+Rank                                   
+1     BTC   -0.0463     -0.0750 -0.0440
+2     ETH   -0.0639     -0.0614 -0.0357
+3     BNB   -0.0586     -0.0610 -0.0267
+4     XRP   -0.0688     -0.0585 -0.0210
+5     SOL   -0.0887     -0.0512 -0.0008
+
+======================================================================
+  TABLE 2 – CONDITIONAL ΔCoVaR RANKING
+======================================================================
+     Coin  Mean ΔCoVaR_t  Min ΔCoVaR_t  Max ΔCoVaR_t
+Rank                                                
+1     BTC        -0.0427       -0.0926       -0.0086
+2     ETH        -0.0324       -0.0622       -0.0102
+3     BNB        -0.0294       -0.0705       -0.0110
+4     XRP        -0.0225       -0.0643       -0.0004
+5     SOL        -0.0020       -0.0042        0.0012
+
+======================================================================
+  TABLE 3 – FORWARD-CoVaR REGRESSION (in-sample)
+======================================================================
+      Pseudo-R²    MSE IS   MSE OOS  β_const  β_M_vol  β_M_trend  β_M_fund  β_M_fiat  β_M_volu
+Coin                                                                                          
+BTC      0.4006  0.000239  0.000262  -0.0381  -0.0086     0.0021   -0.0015   -0.0008   -0.0077
+ETH      0.4011  0.000123  0.000129  -0.0276  -0.0052     0.0038   -0.0008   -0.0000   -0.0044
+XRP      0.3736  0.000072  0.000087  -0.0160  -0.0020     0.0027   -0.0000   -0.0001   -0.0038
+BNB      0.3252  0.000142  0.000174  -0.0230  -0.0027     0.0062   -0.0009    0.0002   -0.0046
+SOL      0.1415  0.000029  0.000033   0.0010   0.0023    -0.0002   -0.0003    0.0004   -0.0000
+
+======================================================================
+  TABLE 4 – BACKTESTING SUMMARY
+======================================================================
+      N obs  Violations  Viol. rate  Kupiec LR  Kupiec p Kupiec pass  Christ. LR  Christ. p Christ. pass
+Coin                                                                                                    
+BTC     523          18      0.0344     2.9878    0.0839           ✓      1.2860     0.2568            ✓
+ETH     523          26      0.0497     0.0009    0.9760           ✓      1.8777     0.1706            ✓
+XRP     523          22      0.0421     0.7311    0.3925           ✓      1.9366     0.1640            ✓
+BNB     523          23      0.0440     0.4156    0.5191           ✓      0.8381     0.3600            ✓
+SOL     523           9      0.0172    15.6860    0.0001           ✗      0.3158     0.5741            ✓
+
+======================================================================
+  PHASE 2: GENERATING AND SAVING ALL PLOTS
+======================================================================
+  Saving: plot_dynamic_covar...
+  Saving: plot_forward_covar_fit (BTC)...
+  Saving: plot_forward_covar_fit (ETH)...
+  Saving: plot_forward_covar_fit (XRP)...
+  Saving: plot_forward_covar_fit (BNB)...
+  Saving: plot_forward_covar_fit (SOL)...
+  Saving: plot_ranking_shift...
+  Saving: plot_feature_importance...
+
+======================================================================
+  PHASE 3: SENSITIVITY ANALYSIS (EXPANDING + OLS)
+======================================================================
+
+==================================================
+  Sensitivity Analysis: BTC
+==================================================
+  --> Calculating Conditional CoVaR for q=0.01...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.05...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.1...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+
+==================================================
+  Sensitivity Analysis: ETH
+==================================================
+  --> Calculating Conditional CoVaR for q=0.01...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.05...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.1...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+
+==================================================
+  Sensitivity Analysis: XRP
+==================================================
+  --> Calculating Conditional CoVaR for q=0.01...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.05...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.1...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+
+==================================================
+  Sensitivity Analysis: BNB
+==================================================
+  --> Calculating Conditional CoVaR for q=0.01...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.05...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.1...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+
+==================================================
+  Sensitivity Analysis: SOL
+==================================================
+  --> Calculating Conditional CoVaR for q=0.01...

@@ -5,5 +5,7 @@ venv/
 .ipynb_checkpoints/
 *.csv
 !results/*.csv
+!results_ols/*.csv
 !experiments/results/*.csv
 *.png
+!results_ols/plots/*.png

@@ -32,8 +32,10 @@ def main():
     print("="*70)
     
     # Run pipeline identical to notebook defaults
-    # Set `use_quantreg=False` for strict A&B (2016) replication (Ordinary Least Squares)
-    USE_QUANTREG = True
+    # Automatically triggers strict A&B (2016) replication (OLS) if --ols is appended
+    USE_QUANTREG = "--ols" not in sys.argv
+    if not USE_QUANTREG:
+        print("\n*** STRICT A&B (2016) REPLICATION MODE ENGAGED (OLS) ***")
 
     results = run_full_pipeline(
         full_df, 
@@ -68,15 +70,16 @@ def main():
     print("  PHASE 3: EXPORTING RESULTS TO CSV")
     print("="*70)
     
-    os.makedirs("results", exist_ok=True)
+    out_dir = "results" if USE_QUANTREG else "results_ols"
+    os.makedirs(out_dir, exist_ok=True)
     
     try:
-        make_unconditional_ranking_table(results).to_csv("results/table1_unconditional_ranking.csv")
-        make_conditional_ranking_table(results).to_csv("results/table2_conditional_ranking.csv")
-        make_forward_covar_table(results).to_csv("results/table3_forward_covar.csv")
-        make_backtest_table(results).to_csv("results/table4_backtests.csv")
-        sens_df.to_csv("results/sensitivity_analysis.csv")
-        print("Success! All generated tables have been saved securely in the 'results/' directory.")
+        make_unconditional_ranking_table(results).to_csv(f"{out_dir}/table1_unconditional_ranking.csv")
+        make_conditional_ranking_table(results).to_csv(f"{out_dir}/table2_conditional_ranking.csv")
+        make_forward_covar_table(results).to_csv(f"{out_dir}/table3_forward_covar.csv")
+        make_backtest_table(results).to_csv(f"{out_dir}/table4_backtests.csv")
+        sens_df.to_csv(f"{out_dir}/sensitivity_analysis.csv")
+        print(f"Success! All generated tables have been saved securely in the '{out_dir}/' directory.")
     except Exception as e:
         print(f"Error while saving data: {e}")
 

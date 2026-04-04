@@ -1,0 +1,278 @@
+=====================================================
+   BEGINNING AUTOMATED THESIS CoVaR BATCH PIPELINE   
+=====================================================
+
+[1/4] Running Main Analysis (Expand Window Quantiles)...
+Loading dataframe from: /Users/iphonevansiebe/Downloads/thesis_full_df_backup_final.csv
+
+======================================================================
+  PHASE 1: RUNNING FULL FORWARD-CoVaR PIPELINE
+======================================================================
+
+============================================================
+  Processing: BTC
+============================================================
+  [1] Unconditional ΔCoVaR : -0.0440
+  [2] Conditional ΔCoVaR (mean): -0.0427
+      γ (coin return coeff):      0.9197
+  [3] Forward-CoVaR  |  Pseudo-R² = 0.2338  |  Pinball OOS = 0.001915
+  [4] Kupiec  : LR=2.9878, p=0.0839, reject=False
+      Christ. : LR=1.286, p=0.2568, reject=False
+
+============================================================
+  Processing: ETH
+============================================================
+  [1] Unconditional ΔCoVaR : -0.0357
+  [2] Conditional ΔCoVaR (mean): -0.0324
+      γ (coin return coeff):      0.5224
+  [3] Forward-CoVaR  |  Pseudo-R² = 0.3343  |  Pinball OOS = 0.001267
+  [4] Kupiec  : LR=0.0009, p=0.976, reject=False
+      Christ. : LR=1.8777, p=0.1706, reject=False
+
+============================================================
+  Processing: XRP
+============================================================
+  [1] Unconditional ΔCoVaR : -0.0210
+  [2] Conditional ΔCoVaR (mean): -0.0225
+      γ (coin return coeff):      0.3310
+  [3] Forward-CoVaR  |  Pseudo-R² = 0.3071  |  Pinball OOS = 0.001183
+  [4] Kupiec  : LR=0.7311, p=0.3925, reject=False
+      Christ. : LR=1.9366, p=0.164, reject=False
+
+============================================================
+  Processing: BNB
+============================================================
+  [1] Unconditional ΔCoVaR : -0.0267
+  [2] Conditional ΔCoVaR (mean): -0.0294
+      γ (coin return coeff):      0.5076
+  [3] Forward-CoVaR  |  Pseudo-R² = 0.3156  |  Pinball OOS = 0.001771
+  [4] Kupiec  : LR=0.4156, p=0.5191, reject=False
+      Christ. : LR=0.8381, p=0.36, reject=False
+
+============================================================
+  Processing: SOL
+============================================================
+  [1] Unconditional ΔCoVaR : -0.0008
+  [2] Conditional ΔCoVaR (mean): -0.0020
+      γ (coin return coeff):      0.0223
+  [3] Forward-CoVaR  |  Pseudo-R² = 0.0951  |  Pinball OOS = 0.000552
+  [4] Kupiec  : LR=15.686, p=0.0001, reject=True
+      Christ. : LR=0.3158, p=0.5741, reject=False
+
+======================================================================
+  TABLE 1 – UNCONDITIONAL ΔCoVaR RANKING
+======================================================================
+     Coin  VaR (5%)  CoVaR (5%)  ΔCoVaR
+Rank                                   
+1     BTC   -0.0463     -0.0750 -0.0440
+2     ETH   -0.0639     -0.0614 -0.0357
+3     BNB   -0.0586     -0.0610 -0.0267
+4     XRP   -0.0688     -0.0585 -0.0210
+5     SOL   -0.0887     -0.0512 -0.0008
+
+======================================================================
+  TABLE 2 – CONDITIONAL ΔCoVaR RANKING
+======================================================================
+     Coin  Mean ΔCoVaR_t  Min ΔCoVaR_t  Max ΔCoVaR_t
+Rank                                                
+1     BTC        -0.0427       -0.0926       -0.0086
+2     ETH        -0.0324       -0.0622       -0.0102
+3     BNB        -0.0294       -0.0705       -0.0110
+4     XRP        -0.0225       -0.0643       -0.0004
+5     SOL        -0.0020       -0.0042        0.0012
+
+======================================================================
+  TABLE 3 – FORWARD-CoVaR REGRESSION (in-sample)
+======================================================================
+      Pseudo-R²  Pinball IS  Pinball OOS  β_const  β_M_vol  β_M_trend  β_M_fund  β_M_fiat  β_M_volu
+Coin                                                                                               
+BTC      0.2338    0.001777     0.001915  -0.0617  -0.0109    -0.0017   -0.0024   -0.0006   -0.0079
+ETH      0.3343    0.001224     0.001267  -0.0457  -0.0055     0.0043   -0.0010    0.0003   -0.0058
+XRP      0.3071    0.001017     0.001183  -0.0310  -0.0012     0.0058   -0.0009   -0.0003   -0.0066
+BNB      0.3156    0.001499     0.001771  -0.0406  -0.0055     0.0108   -0.0005    0.0002   -0.0070
+SOL      0.0951    0.000505     0.000552  -0.0068   0.0018     0.0003   -0.0001    0.0002   -0.0005
+
+======================================================================
+  TABLE 4 – BACKTESTING SUMMARY
+======================================================================
+      N obs  Violations  Viol. rate  Kupiec LR  Kupiec p Kupiec pass  Christ. LR  Christ. p Christ. pass
+Coin                                                                                                    
+BTC     523          18      0.0344     2.9878    0.0839           ✓      1.2860     0.2568            ✓
+ETH     523          26      0.0497     0.0009    0.9760           ✓      1.8777     0.1706            ✓
+XRP     523          22      0.0421     0.7311    0.3925           ✓      1.9366     0.1640            ✓
+BNB     523          23      0.0440     0.4156    0.5191           ✓      0.8381     0.3600            ✓
+SOL     523           9      0.0172    15.6860    0.0001           ✗      0.3158     0.5741            ✓
+
+======================================================================
+  PHASE 2: RUNNING SENSITIVITY ANALYSIS
+======================================================================
+
+==================================================
+  Sensitivity Analysis: BTC
+==================================================
+  --> Calculating Conditional CoVaR for q=0.01...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.05...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.1...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+
+==================================================
+  Sensitivity Analysis: ETH
+==================================================
+  --> Calculating Conditional CoVaR for q=0.01...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.05...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.1...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+
+==================================================
+  Sensitivity Analysis: XRP
+==================================================
+  --> Calculating Conditional CoVaR for q=0.01...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.05...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.1...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+
+==================================================
+  Sensitivity Analysis: BNB
+==================================================
+  --> Calculating Conditional CoVaR for q=0.01...
+      Running Forward-CoVaR (h=1) | Expanding=True
+      Running Forward-CoVaR (h=5) | Expanding=True
+      Running Forward-CoVaR (h=10) | Expanding=True
+  --> Calculating Conditional CoVaR for q=0.05...
+      Running Forward-CoVaR (h=1) | Expanding=True
+./run_everything.sh: line 7: 97592 Killed: 9               python3 run_analysis.py
+
+[2/4] Running Macroeconomic Stress Test Sandbox...
+Loading pristine dataset...
+
+[BASELINE] Analysing normal macroeconomic conditions...
+     Coin  VaR (5%)  CoVaR (5%)  ΔCoVaR
+Rank                                   
+1     BTC   -0.0463     -0.0750 -0.0440
+2     ETH   -0.0639     -0.0614 -0.0357
+3     BNB   -0.0586     -0.0610 -0.0267
+4     XRP   -0.0688     -0.0585 -0.0210
+5     SOL   -0.0887     -0.0512 -0.0008
+
+============================================================
+  STRESS TEST: APPLYING 400% SHOCK TO MACRO VOLATILITY
+============================================================
+
+[STRESSED] Analysing high volatility conditions...
+     Coin  VaR (5%)  CoVaR (5%)  ΔCoVaR
+Rank                                   
+1     BTC   -0.0463     -0.0750 -0.0440
+2     ETH   -0.0639     -0.0614 -0.0357
+3     BNB   -0.0586     -0.0610 -0.0267
+4     XRP   -0.0688     -0.0585 -0.0210
+5     SOL   -0.0887     -0.0512 -0.0008
+
+=> Exported final comparison to /Users/iphonevansiebe/.gemini/antigravity/scratch/thesis_covar_project/experiments/results/stress_test_comparison.csv
+
+[3/4] Running Regime-Switching Dynamics Sandbox...
+Loading dataset for Regime-Switching analysis...
+
+Regime Split:
+  Low Volatility (Bull) days: 1044
+  High Volatility (Bear) days: 1045
+
+======================================================================
+  REGIME-SWITCHING CONDITIONAL CoVaR ANALYSIS
+======================================================================
+
+[BTC] Systemic Importance (Gamma Coefficient):
+  Normal Market : 0.9481
+  Distressed    : 0.8812
+
+[ETH] Systemic Importance (Gamma Coefficient):
+  Normal Market : 0.4931
+  Distressed    : 0.5325
+
+[XRP] Systemic Importance (Gamma Coefficient):
+  Normal Market : 0.4020
+  Distressed    : 0.2942
+
+[BNB] Systemic Importance (Gamma Coefficient):
+  Normal Market : 0.5829
+  Distressed    : 0.4818
+
+[SOL] Systemic Importance (Gamma Coefficient):
+  Normal Market : 0.0713
+  Distressed    : -0.0652
+
+--- Summary Data Generated ---
+      Bull_ΔCoVaR  Bear_ΔCoVaR  Risk_Amplifier
+Coin                                          
+BTC       -0.0356      -0.0498          0.4007
+ETH       -0.0240      -0.0405          0.6855
+XRP       -0.0208      -0.0257          0.2386
+BNB       -0.0288      -0.0342          0.1879
+SOL       -0.0049       0.0069         -2.4050
+
+=> Full statistics successfully exported to: /Users/iphonevansiebe/.gemini/antigravity/scratch/thesis_covar_project/experiments/results/regime_switching_analysis.csv
+
+[4/4] Running Extreme Value Theory (EVT) Sandbox...
+Loading dataset for Extreme Value Theory (EVT) analysis...
+
+======================================================================
+  EXTREME VALUE THEORY (EVT) SYSTEMIC RISK STRESS TEST
+======================================================================
+Methodology: Peaks-Over-Threshold (Generalized Pareto Distribution)
+Modeling the absolute 0.1% extreme tail of the cryptocurrency market.
+
+[BTC] EVT Computed.
+  -> Threshold (u)       : 0.1126 loss
+  -> Tail Index (Shape)  : 0.2880 (positive means fat-tailed!)
+  -> 0.1% Doomsday Crash : -40.38% System Drop
+--------------------------------------------------
+[ETH] EVT Computed.
+  -> Threshold (u)       : 0.0873 loss
+  -> Tail Index (Shape)  : -0.0364 (positive means fat-tailed!)
+  -> 0.1% Doomsday Crash : -22.04% System Drop
+--------------------------------------------------
+[XRP] EVT Computed.
+  -> Threshold (u)       : 0.0907 loss
+  -> Tail Index (Shape)  : 0.0161 (positive means fat-tailed!)
+  -> 0.1% Doomsday Crash : -24.22% System Drop
+--------------------------------------------------
+[BNB] EVT Computed.
+  -> Threshold (u)       : 0.0916 loss
+  -> Tail Index (Shape)  : 0.0957 (positive means fat-tailed!)
+  -> 0.1% Doomsday Crash : -26.26% System Drop
+--------------------------------------------------
+[SOL] EVT Computed.
+  -> Threshold (u)       : 0.0294 loss
+  -> Tail Index (Shape)  : 0.1793 (positive means fat-tailed!)
+  -> 0.1% Doomsday Crash : -30.89% System Drop
+--------------------------------------------------
+
+=> Exported EVT extreme tail modeling metrics to:
+   /Users/iphonevansiebe/.gemini/antigravity/scratch/thesis_covar_project/experiments/results/evt_tail_risk_analysis.csv
+
+=====================================================
+   ALL PIPELINES COMPLETE AND DATA EXPORTED TO CSV!  
+=====================================================
