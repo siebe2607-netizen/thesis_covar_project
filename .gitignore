@@ -4,4 +4,6 @@ venv/
 .env
 .ipynb_checkpoints/
 *.csv
+!results/*.csv
+!experiments/results/*.csv
 *.png
