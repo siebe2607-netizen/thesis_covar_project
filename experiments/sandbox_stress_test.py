@@ -10,7 +10,7 @@ sys.path.append(root_dir)
 from covar_engine import run_full_pipeline, make_unconditional_ranking_table
 
 # 1. Load the pristine data
-CSV_PATH = os.path.expanduser('~/Downloads/thesis_full_df_backup_final.csv')
+CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../thesis_full_df_backup_final.csv')
 if not os.path.exists(CSV_PATH):
     print(f"Dataset not found at {CSV_PATH}. Please ensure it is exported.")
     sys.exit(1)

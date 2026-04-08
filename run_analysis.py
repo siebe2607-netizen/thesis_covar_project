@@ -15,7 +15,7 @@ from covar_engine import (
 
 # Configuration
 # By default, checking the user's Downloads folder for the exported dataset
-CSV_PATH = os.path.expanduser('~/Downloads/thesis_full_df_backup_final.csv')
+CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'thesis_full_df_backup_final.csv')
 
 def main():
     if not os.path.exists(CSV_PATH):
@@ -33,16 +33,13 @@ def main():
     
     # Run pipeline identical to notebook defaults
     # Automatically triggers strict A&B (2016) replication (OLS) if --ols is appended
-    USE_QUANTREG = "--ols" not in sys.argv
-    if not USE_QUANTREG:
-        print("\n*** STRICT A&B (2016) REPLICATION MODE ENGAGED (OLS) ***")
-
+    USE_QUANTREG =  False
     results = run_full_pipeline(
-        full_df, 
-        q=0.05, 
-        horizon=1, 
-        window=100,
-        scale_features=True, 
+        full_df,
+        q=0.05,
+        horizon=1,
+        windows=[100],
+        scale_features=False,   # TEST: disabled to check Merge-boundary Z-score issue
         use_expanding=True,
         use_quantreg=USE_QUANTREG,
         verbose=True
@@ -56,11 +53,11 @@ def main():
     
     # Run sensitivity grid using the expanding window engine
     sens_df = run_sensitivity_analysis(
-        full_df, 
-        quantiles=[0.01, 0.05, 0.10], 
-        horizons=[1, 5, 10], 
-        window=100,
-        scale_features=True, 
+        full_df,
+        quantiles=[0.01, 0.05, 0.10],
+        horizons=[1, 5, 10],
+        windows=[100],
+        scale_features=False,   # TEST: disabled to check Merge-boundary Z-score issue
         use_expanding=True,
         use_quantreg=USE_QUANTREG
     )

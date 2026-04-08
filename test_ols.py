@@ -2,7 +2,7 @@ import pandas as pd
 from covar_engine import build_features, estimate_rolling_delta_covar, estimate_forward_covar, estimate_forward_covar_expanding
 import os
 
-CSV_PATH = os.path.expanduser('~/Downloads/thesis_full_df_backup_final.csv')
+CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'thesis_full_df_backup_final.csv')
 print("Loading subset of data for OLS syntax test...")
 # Load a tiny 800-row slice of the data so it runs in 2 seconds
 df = pd.read_csv(CSV_PATH, index_col=0, parse_dates=True).iloc[-800:]

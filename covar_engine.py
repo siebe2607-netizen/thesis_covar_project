@@ -90,11 +90,14 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
             df["btc_HashRate"].replace(0, np.nan)
         ).diff()
 
-    # ETH PoW dummy already handled in thesismsc.py; replicate if absent
+    # ETH security: fallback if not already built by main notebook cell.
+    # Hard date-split: hash rate pre-Merge, zeros post-Merge (PoS era has no hash rate).
     if "eth_fac_security" not in df.columns and "eth_HashRate" in df.columns:
-        eth_pow = (df.index < "2022-09-15").astype(float)
-        df["eth_fac_security"] = (
-            np.log(df["eth_HashRate"].replace(0, np.nan)).diff() * eth_pow
+        eth_hash_growth = np.log(df["eth_HashRate"].replace(0, np.nan)).diff()
+        df["eth_fac_security"] = np.where(
+            df.index < "2022-09-15",
+            eth_hash_growth,
+            0.0  # No hash rate post-Merge; staking data unavailable in fallback
         )
 
     return df
@@ -676,7 +679,7 @@ def run_backtests(df: pd.DataFrame, ticker: str,
 def run_full_pipeline(df: pd.DataFrame,
                       q: float = QUANTILE,
                       horizon: int = HORIZON,
-                      window: int = 100,
+                      windows: list = [100],
                       scale_features: bool = True,
                       use_expanding: bool = False,
                       use_quantreg: bool = True,
@@ -685,6 +688,7 @@ def run_full_pipeline(df: pd.DataFrame,
     Runs the complete Forward-CoVaR pipeline for all tickers and returns
     a results dictionary with all intermediate outputs.
     """
+    window = windows[0]
     df = build_features(df)
 
     results = {}
@@ -884,39 +888,89 @@ def plot_dynamic_covar(results: dict, save_path: str = None):
 
 def plot_forward_covar_fit(results: dict, ticker: str, save_path: str = None):
     """
-    Figure 2: Actual vs Forward-ΔCoVaR (in-sample + out-of-sample).
+    Figure 2: Actual vs Forward-ΔCoVaR – two-panel layout.
+
+    Top panel : full sample with realised ΔCoVaR (grey) and IS fit (coin colour).
+    Bottom panel : OOS zoom with realised (grey) and forecast (red accent), plus
+                   a rolling-std shaded band to give context around the actual.
     """
     fwd  = results[ticker]["forward"]
     cond = results[ticker]["conditional"]
 
-    actual_full = cond["DeltaCoVaR_t"]
-    fitted      = fwd["fitted"]
-    forecast    = fwd["forecast"]
+    actual_full   = cond["DeltaCoVaR_t"]
+    fitted        = fwd["fitted"]
+    forecast      = fwd["forecast"]
+    actual_oos    = fwd["actual"]
 
-    fig, ax = plt.subplots(figsize=(14, 5))
+    coin_color     = COLORS[ticker]
+    forecast_color = "#E74C3C"          # distinct red for OOS forecast line
+    split_date     = forecast.index[0]
 
-    ax.plot(actual_full.index, actual_full.values,
-            color="grey", linewidth=0.8, alpha=0.6, label="Realised ΔCoVaR")
-    ax.plot(fitted.index, fitted.values,
-            color=COLORS[ticker], linewidth=1.2, label="Fitted (in-sample)")
-    ax.plot(forecast.index, forecast.values,
-            color=COLORS[ticker], linewidth=1.5, linestyle="--",
-            label="Forecast (out-of-sample)")
+    fig, (ax_top, ax_bot) = plt.subplots(
+        2, 1,
+        figsize=(14, 8),
+        gridspec_kw={"height_ratios": [2, 1.4]},
+        sharex=False,
+    )
+    fig.suptitle(
+        f"{ticker.upper()} – Forward-ΔCoVaR: In-Sample Fit & Out-of-Sample Forecast",
+        fontsize=13, fontweight="bold", y=1.01,
+    )
 
-    # Shade OOS window
-    ax.axvspan(forecast.index[0], forecast.index[-1],
-               alpha=0.07, color=COLORS[ticker])
-    ax.axvline(forecast.index[0], color="black",
-               linewidth=0.8, linestyle=":", alpha=0.6)
+    # ── TOP PANEL: full history + IS fit ─────────────────────────────────
+    ax_top.fill_between(
+        actual_full.index, actual_full.values, 0,
+        color="grey", alpha=0.10,
+    )
+    ax_top.plot(
+        actual_full.index, actual_full.values,
+        color="grey", linewidth=0.9, alpha=0.55, label="Realised ΔCoVaR",
+    )
+    ax_top.plot(
+        fitted.index, fitted.values,
+        color=coin_color, linewidth=1.7, alpha=0.90, label="Fitted (in-sample)",
+    )
+    ax_top.axvspan(split_date, actual_full.index[-1],
+                   alpha=0.07, color=forecast_color)
+    ax_top.axvline(split_date, color=forecast_color,
+                   linewidth=1.4, linestyle="--", alpha=0.8,
+                   label="Train / Test split")
+    ax_top.axhline(0, color="black", linewidth=0.6, linestyle=":", alpha=0.4)
+    ax_top.set_ylabel("ΔCoVaR")
+    ax_top.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+    ax_top.legend(frameon=False, fontsize=9)
+    ax_top.set_title("Full sample — in-sample model fit",
+                     fontsize=10, loc="left", pad=4)
 
-    ax.set_title(f"{ticker.upper()} – Forward-ΔCoVaR vs Realised",
-                 fontsize=13)
-    ax.set_ylabel("ΔCoVaR")
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-    ax.legend(frameon=False)
+    # ── BOTTOM PANEL: OOS zoom ───────────────────────────────────────────
+    window   = max(10, len(forecast) // 10)
+    roll_std = actual_oos.rolling(window, min_periods=1).std().fillna(0)
+
+    ax_bot.fill_between(
+        actual_oos.index,
+        actual_oos.values - roll_std.values,
+        actual_oos.values + roll_std.values,
+        color="grey", alpha=0.15, label=f"Realised ±1 Std (rolling {window}d)",
+    )
+    ax_bot.plot(
+        actual_oos.index, actual_oos.values,
+        color="grey", linewidth=1.2, alpha=0.70, label="Realised ΔCoVaR (OOS)",
+    )
+    ax_bot.plot(
+        forecast.index, forecast.values,
+        color=forecast_color, linewidth=2.0, alpha=0.92,
+        label="Forecast (out-of-sample)",
+    )
+    ax_bot.axhline(0, color="black", linewidth=0.6, linestyle=":", alpha=0.4)
+    ax_bot.set_ylabel("ΔCoVaR")
+    ax_bot.xaxis.set_major_formatter(mdates.DateFormatter("%b '%y"))
+    ax_bot.legend(frameon=False, fontsize=9)
+    ax_bot.set_title("Out-of-sample window — forecast vs realised",
+                     fontsize=10, loc="left", pad=4)
+
     fig.tight_layout()
     if save_path:
-        fig.savefig(save_path, dpi=150)
+        fig.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.show()
 
 
@@ -1067,58 +1121,62 @@ def print_summary_report(results: dict):
 # SECTION 9 – SENSITIVITY ANALYSIS (HORIZON & TAIL)
 # =============================================================================
 
-def run_sensitivity_analysis(df: pd.DataFrame, 
-                             tickers: list = TICKERS, 
-                             quantiles: list = [0.01, 0.05, 0.10], 
-                             horizons: list = [1, 5, 10], 
-                             window: int = 100,
+def run_sensitivity_analysis(df: pd.DataFrame,
+                             tickers: list = TICKERS,
+                             quantiles: list = [0.01, 0.05, 0.10],
+                             horizons: list = [1, 5, 10],
+                             windows: list = [100],
                              use_expanding: bool = False,
                              scale_features: bool = True,
                              use_quantreg: bool = True,
                              verbose: bool = True) -> pd.DataFrame:
     """
-    Runs a sensitivity analysis across multiple tail quantiles (q) and prediction horizons.
+    Runs a sensitivity analysis across multiple tail quantiles (q), prediction horizons, and window lengths.
     Returns a MultiIndex DataFrame with Pinball and R2 metrics.
+
+    Pass multiple values in `windows` to sweep over window lengths (e.g. [50, 100, 200]).
     """
     df_features = build_features(df)
     results_list = []
-    
+
     for t in tickers:
         if verbose:
             print(f"\n{'='*50}\n  Sensitivity Analysis: {t.upper()}\n{'='*50}")
-            
-        for q in quantiles:
-            if verbose:
-                print(f"  --> Calculating Conditional CoVaR for q={q} (window={window})...")
-                
-            # DeltaCoVaR only depends on q, not horizon! Calculate once per quantile.
-            rolling_dcovar = estimate_rolling_delta_covar(df_features, t, q=q, window=window)
-            
-            for h in horizons:
+
+        for w in windows:
+            for q in quantiles:
                 if verbose:
-                    print(f"      Running Forward-CoVaR (h={h}) | Expanding={use_expanding}")
-                try:
-                    if use_expanding:
-                        fwd = estimate_forward_covar_expanding(df_features, t, rolling_dcovar, q=q, horizon=h, scale_features=scale_features, use_quantreg=use_quantreg)
-                    else:
-                        fwd = estimate_forward_covar(df_features, t, rolling_dcovar, q=q, horizon=h, scale_features=scale_features, use_quantreg=use_quantreg)
-                        
-                    results_list.append({
-                        "Coin": t.upper(),
-                        "Quantile": q,
-                        "Horizon": h,
-                        "Engine": "Expanding" if use_expanding else "Static",
-                        "Pseudo-R2": fwd["r2_is"],
-                        "Loss_IS": fwd["loss_is"],
-                        "Loss_OOS": fwd["loss_oos"],
-                        "Loss_Metric": fwd["loss_name"]
-                    })
-                except Exception as e:
-                    print(f"      [ERROR] failed for q={q}, h={h}: {e}")
-                    
+                    print(f"  --> Calculating Conditional CoVaR for q={q} (window={w})...")
+
+                # DeltaCoVaR only depends on q and window, not horizon! Calculate once per (quantile, window).
+                rolling_dcovar = estimate_rolling_delta_covar(df_features, t, q=q, window=w)
+
+                for h in horizons:
+                    if verbose:
+                        print(f"      Running Forward-CoVaR (h={h}) | Expanding={use_expanding}")
+                    try:
+                        if use_expanding:
+                            fwd = estimate_forward_covar_expanding(df_features, t, rolling_dcovar, q=q, horizon=h, scale_features=scale_features, use_quantreg=use_quantreg)
+                        else:
+                            fwd = estimate_forward_covar(df_features, t, rolling_dcovar, q=q, horizon=h, scale_features=scale_features, use_quantreg=use_quantreg)
+
+                        results_list.append({
+                            "Coin": t.upper(),
+                            "Window": w,
+                            "Quantile": q,
+                            "Horizon": h,
+                            "Engine": "Expanding" if use_expanding else "Static",
+                            "Pseudo-R2": fwd["r2_is"],
+                            "Loss_IS": fwd["loss_is"],
+                            "Loss_OOS": fwd["loss_oos"],
+                            "Loss_Metric": fwd["loss_name"]
+                        })
+                    except Exception as e:
+                        print(f"      [ERROR] failed for q={q}, h={h}, window={w}: {e}")
+
     results_df = pd.DataFrame(results_list)
     if not results_df.empty:
-        results_df.set_index(["Coin", "Quantile", "Horizon"], inplace=True)
+        results_df.set_index(["Coin", "Window", "Quantile", "Horizon"], inplace=True)
     return results_df
 
 

@@ -11,7 +11,7 @@ import os
 from scipy import stats
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-CSV_PATH = os.path.expanduser("~/Downloads/thesis_full_df_backup_final.csv")
+CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'thesis_full_df_backup_final.csv')
 OUT_DIR = "results/descriptive_statistics"
 os.makedirs(OUT_DIR, exist_ok=True)
 
